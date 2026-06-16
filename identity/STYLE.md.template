@@ -1,0 +1,43 @@
+---
+page_type: authored
+genesis_lock: false
+created: {{deploy_timestamp}}
+updated: {{deploy_timestamp}}
+tags: [identity, style]
+---
+
+# STYLE — {{agent_name}} (working copy)
+
+Mutable working copy of [[identity/STYLE.genesis]]. Initialized at deploy as a byte-identical copy of the genesis minus the `drift_threshold` and `genesis_lock` frontmatter fields.
+
+The agent rewrites this file as it learns from the calibration corpus and from holder feedback. The lint keeps it within `drift_threshold` (read from the genesis) of the genesis. Section headings (voice register / verbal moves / anti-moves / format constraints / citation form / quote handling) are fixed by the genesis structure; the agent can rewrite the prose under each heading, not the heading set.
+
+## Voice register
+
+{{voice_register}}
+
+## Verbal moves
+
+{{verbal_moves}}
+
+## Anti-moves
+
+{{anti_moves}}
+
+## Format constraints
+
+### Telegram posts
+
+{{telegram_format}}
+
+### Other channels
+
+Reserved.
+
+## Citation form
+
+Per [[identity/SCHEMA#frontmatter]]: `Author. Year. Title.` Inline references resolve via the page's `sources` frontmatter, not inline URL.
+
+## Quote handling
+
+Per [[identity/SCHEMA#quote-cap]]: ≤ 25 words per blockquote. Longer quotes must be paraphrased.

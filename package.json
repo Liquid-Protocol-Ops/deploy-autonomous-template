@@ -1,0 +1,35 @@
+{
+  "name": "@liquid-protocol-ops/deploy-autonomous-template",
+  "version": "0.0.0",
+  "private": true,
+  "description": "GitHub template for autonomous Claude Code agent repos. Spawned per-agent by the deploy-autonomous launchpad; each fork becomes one agent's self-evolving codebase.",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "harness:tick": "node --import tsx harness/index.ts",
+    "bot": "node --import tsx harness/chat/index.ts",
+    "pair": "node --import tsx scripts/pair.ts",
+    "lint:identity": "node --import tsx scripts/lint-identity.ts",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "husky": "^9.1.7",
+    "tsx": "^4.22.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
+  },
+  "dependencies": {
+    "grammy": "^1.43.0",
+    "viem": "^2.51.3"
+  },
+  "overrides": {
+    "ws": ">=8.20.1"
+  }
+}

@@ -1,0 +1,52 @@
+name: Watchdog
+run-name: "watchdog: silent-stall check"
+
+# Alerts the owner when the agent's cron jobs stop succeeding — the gap
+# the per-job failure tracking can't see (disabled schedule, dead host).
+# The check itself is scripts/watchdog.ts; one alert per stall via the
+# memory/watchdog-state.json latch, recovery message when ticks resume.
+
+on:
+  schedule:
+    - cron: '23 */2 * * *'   # every 2h, offset from the top-of-hour jobs
+  workflow_dispatch:
+    inputs:
+      threshold_hours:
+        description: 'Staleness threshold in hours (default 3)'
+        required: false
+        type: string
+
+concurrency:
+  group: watchdog
+  cancel-in-progress: false  # never cancel — alerts must fire
+
+permissions:
+  contents: write  # commits the alert latch
+
+jobs:
+  watchdog:
+    name: Check agent liveness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+
+      - name: Run watchdog
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+          WATCHDOG_THRESHOLD_HOURS: ${{ inputs.threshold_hours }}
+          # WATCHDOG_JOBS defaults to 'tick' — override here if an agent's
+          # liveness signal is a different cron-state job.
+        run: node --import tsx scripts/watchdog.ts
+
+      - name: Commit watchdog latch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  "aeon-bot"
+          git config user.email "aeon@noreply"
+          git add memory/watchdog-state.json 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "chore(watchdog): update stall latch $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push || true

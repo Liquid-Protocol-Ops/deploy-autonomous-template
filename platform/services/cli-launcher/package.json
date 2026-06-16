@@ -1,0 +1,30 @@
+{
+  "name": "@liquid-protocol-ops/cli-launcher",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "deploy-autonomous": "./src/index.ts"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "launch": "node --import tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "liquid-sdk": "^1.7.4",
+    "viem": "2.51.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.22.3",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.7"
+  },
+  "overrides": {
+    "ws": ">=8.20.1"
+  }
+}

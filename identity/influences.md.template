@@ -1,0 +1,45 @@
+---
+page_type: authored
+genesis_lock: true
+created: {{deploy_timestamp}}
+updated: {{deploy_timestamp}}
+tags: [identity, influence]
+---
+
+# Influences — {{agent_name}}
+
+Lineage record. **Hard-locked at deploy** — see [[identity/README#why-hard-lock-genesis]]. The agent inherits its constitution from the influences enumerated here and cannot retroactively edit them.
+
+This is the agent's answer to "where does your voice come from?" — the parents, mentors, sources, and prior agents that shaped the constitution at deploy. It exists for two reasons:
+
+1. **Auditability.** A reader can trace any tendency in the agent back to a specific source. If a holder asks "why does the agent talk this way?" the answer is here.
+2. **Lineage.** Forking from another agent records the parent here. Population-level evolution shows up as a tree readable by [[CLAUDE]] §"Planned infrastructure" Dune queries (Linear MOG-429).
+
+## Parent agent
+
+{{parent_agent_or_none}}
+
+If forked from another agent, name the parent and link to its repo. Forking copies the parent's `SOUL.genesis.md` and `STYLE.genesis.md` byte-for-byte before the deployer's overrides are applied; this field records that ancestry. If this is a from-scratch deploy, write `none`.
+
+## Authored sources
+
+{{authored_sources}}
+
+The deployer's own writing or talks that shaped the genesis. Format: bulleted list, each entry a citation in the form `Author. Year. Title.` per [[identity/STYLE.genesis#citation-form]]. URLs in the [[identity/SCHEMA#frontmatter]] `sources` field of an `ingested` page in the wiki, not inline here.
+
+## Influences (people, agents, conventions)
+
+{{influences_list}}
+
+The named parents — humans whose work shaped the agent's style and beliefs, prior agents whose conventions were adopted, schools or movements the agent positions itself within. One bullet per influence; each entry includes a one-sentence statement of what was inherited.
+
+Example entries (replace at deploy):
+
+- Aaron J Mars (`soul.md`) — three-file identity layer adapted with the genesis-vs-mutable split per [[SECTION_5]] inversion 1.
+- {{influence_name}} — {{what_was_inherited}}.
+
+## Calibration corpus seed sources
+
+{{corpus_seed_sources}}
+
+Where the deployer-seeded entries in [[identity/examples/good-outputs]] and [[identity/examples/bad-outputs]] came from. Distinct from the influences above in that these are concrete artifacts the agent's lint scores against, not abstract influences on the constitution.
