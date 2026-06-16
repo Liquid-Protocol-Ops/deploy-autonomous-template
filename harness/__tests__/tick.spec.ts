@@ -1,0 +1,193 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { parseEther } from 'viem';
+import type { Address } from 'viem';
+
+// ── Module mocks (hoisted before imports) ────────────────────────────
+
+const vMocks = vi.hoisted(() => ({
+  loadConfig: vi.fn(),
+  makePublicClient: vi.fn(),
+  getClaimable: vi.fn(),
+  getDiemBalance: vi.fn(),
+  getSvvvBalance: vi.fn(),
+  getSdiemStaked: vi.fn(),
+  claimDiem: vi.fn(),
+  stakeDiem: vi.fn(),
+  loadOrMintBearer: vi.fn(),
+  callInference: vi.fn(),
+  // constants used directly in tick.ts
+  FAST_MODEL: 'llama-3.3-70b',
+  REASONING_MODEL: 'claude-opus-4-7',
+}));
+
+const lMocks = vi.hoisted(() => ({
+  reinvestToLP: vi.fn(),
+}));
+
+vi.mock('../providers/venice.js', () => vMocks);
+vi.mock('../providers/liquidity.js', () => lMocks);
+
+import { runTick, type TickDeps } from '../tick.js';
+
+// ── Fixtures ─────────────────────────────────────────────────────────
+
+const AGENT_ADDRESS = '0xabcdef1234567890abcdef1234567890abcdef12' as Address;
+
+const TEST_CONFIG = {
+  diemAddress: '0x0000000000000000000000000000000000000001' as Address,
+  vvvAddress: '0x0000000000000000000000000000000000000002' as Address,
+  vvvStakingAddress: '0x0000000000000000000000000000000000000003' as Address,
+  rpcUrl: 'https://base-mainnet.example.com',
+  svvvThreshold: parseEther('0.1'),
+  minDiemWei: parseEther('0.01'),
+  bearerCachePath: 'memory/venice-bearer.json',
+  veniceApiBase: 'https://api.venice.ai/api/v1',
+  model: 'llama-3.3-70b',
+};
+
+const MOCK_PUBLIC_CLIENT = {
+  waitForTransactionReceipt: vi.fn().mockResolvedValue({}),
+  readContract: vi.fn().mockResolvedValue(0n),
+};
+
+const MOCK_SIGNER = {
+  address: AGENT_ADDRESS,
+  signMessage: vi.fn(),
+  signTypedData: vi.fn(),
+} as unknown as import('../safety/wallet.js').Signer;
+
+const MOCK_TX_SENDER = vi.fn().mockResolvedValue('0xtxhash' as `0x${string}`);
+
+const DEPS: TickDeps = { signer: MOCK_SIGNER, txSender: MOCK_TX_SENDER };
+
+// ── Setup ────────────────────────────────────────────────────────────
+
+// Default plan: fast path, no reasoning needed.
+const PLAN_NO_REASON = JSON.stringify({ needs_reasoning: false, task: 'tick', rationale: 'simple' });
+const PLAN_NEEDS_REASON = JSON.stringify({ needs_reasoning: true, task: 'think deeply', rationale: 'complex task' });
+
+beforeEach(() => {
+  vMocks.loadConfig.mockReturnValue(TEST_CONFIG);
+  vMocks.makePublicClient.mockReturnValue(MOCK_PUBLIC_CLIENT);
+  vMocks.getClaimable.mockResolvedValue(0n);
+  vMocks.getDiemBalance.mockResolvedValue(0n);  // no DIEM in wallet — falls through to inference
+  vMocks.getSvvvBalance.mockResolvedValue(parseEther('1'));  // sVVV gate passed
+  vMocks.getSdiemStaked.mockResolvedValue(parseEther('5')); // logging only — non-zero so the log line is meaningful
+  vMocks.claimDiem.mockResolvedValue('0xclaim' as `0x${string}`);
+  vMocks.stakeDiem.mockResolvedValue('0xstake' as `0x${string}`);
+  vMocks.loadOrMintBearer.mockResolvedValue('test-bearer');
+  // Default: fast plan returns no-reasoning JSON; reason step returns prose.
+  vMocks.callInference.mockResolvedValue(PLAN_NO_REASON);
+  lMocks.reinvestToLP.mockResolvedValue({
+    approveTxHash: '0xapprove' as `0x${string}`,
+    mintTxHash:    '0xmint' as `0x${string}`,
+    tickLower:     -400,
+    tickUpper:     -200,
+    currentTick:   100,
+  });
+});
+
+afterEach(() => { vi.clearAllMocks(); });
+
+// ── Tests ────────────────────────────────────────────────────────────
+
+describe('runTick — inference path', () => {
+  it('calls fast inference when staked ≥ threshold', async () => {
+    await runTick(DEPS);
+    expect(vMocks.callInference).toHaveBeenCalledOnce();
+    expect(vMocks.callInference).toHaveBeenCalledWith(
+      TEST_CONFIG, 'test-bearer',
+      expect.objectContaining({ model: 'llama-3.3-70b', prompt: expect.any(String) }),
+      expect.any(String),
+    );
+  });
+
+  it('calls reason inference only when fast plan sets needs_reasoning: true', async () => {
+    vMocks.callInference
+      .mockResolvedValueOnce(PLAN_NEEDS_REASON)   // fast plan
+      .mockResolvedValueOnce('detailed answer');    // reason step
+    await runTick(DEPS);
+    expect(vMocks.callInference).toHaveBeenCalledTimes(2);
+    const reasonCall = vMocks.callInference.mock.calls[1]!;
+    expect(reasonCall[2]).toMatchObject({ model: 'claude-opus-4-7' });
+  });
+
+  it('skips reason call when fast plan returns needs_reasoning: false', async () => {
+    await runTick(DEPS);
+    expect(vMocks.callInference).toHaveBeenCalledOnce();
+  });
+
+  it('loads or mints a bearer before inference', async () => {
+    await runTick(DEPS);
+    expect(vMocks.loadOrMintBearer).toHaveBeenCalledOnce();
+    expect(vMocks.loadOrMintBearer).toHaveBeenCalledWith(TEST_CONFIG, MOCK_SIGNER);
+  });
+
+  it('skips inference when staked < threshold', async () => {
+    vMocks.getSvvvBalance.mockResolvedValue(0n);
+    await runTick(DEPS);
+    expect(vMocks.callInference).not.toHaveBeenCalled();
+    expect(vMocks.loadOrMintBearer).not.toHaveBeenCalled();
+  });
+});
+
+describe('runTick — claim path', () => {
+  it('claims when claimable ≥ threshold', async () => {
+    vMocks.getClaimable.mockResolvedValue(parseEther('0.5'));
+    vMocks.getDiemBalance.mockResolvedValue(parseEther('0.5'));
+    await runTick(DEPS);
+    expect(vMocks.claimDiem).toHaveBeenCalledOnce();
+    expect(vMocks.claimDiem).toHaveBeenCalledWith(TEST_CONFIG, AGENT_ADDRESS, MOCK_TX_SENDER);
+  });
+
+  it('LPs after claim when wallet balance is above threshold', async () => {
+    vMocks.getClaimable.mockResolvedValue(parseEther('0.5'));
+    vMocks.getDiemBalance.mockResolvedValue(parseEther('0.5'));
+    await runTick(DEPS);
+    expect(lMocks.reinvestToLP).toHaveBeenCalledOnce();
+  });
+
+  it('skips LP when wallet balance is zero after claim (RPC lag)', async () => {
+    vMocks.getClaimable.mockResolvedValue(parseEther('0.5'));
+    vMocks.getDiemBalance.mockResolvedValue(0n);
+    await runTick(DEPS);
+    expect(lMocks.reinvestToLP).not.toHaveBeenCalled();
+  });
+
+  it('waits for claim receipt before reading wallet balance (accumulate mode)', async () => {
+    vMocks.getClaimable.mockResolvedValue(parseEther('0.5'));
+    vMocks.getDiemBalance.mockResolvedValue(parseEther('0.5'));
+    const order: string[] = [];
+    vMocks.claimDiem.mockImplementation(async () => { order.push('claim'); return '0xclaim'; });
+    MOCK_PUBLIC_CLIENT.waitForTransactionReceipt.mockImplementation(async () => { order.push('wait'); return {}; });
+    await runTick(DEPS);
+    // claim receipt first, then LP mint receipt
+    expect(order).toEqual(['claim', 'wait', 'wait']);
+  });
+
+  it('LPs wallet DIEM even when nothing to claim (prior tick left dust)', async () => {
+    vMocks.getClaimable.mockResolvedValue(0n);
+    vMocks.getDiemBalance.mockResolvedValue(parseEther('0.5'));
+    await runTick(DEPS);
+    expect(vMocks.claimDiem).not.toHaveBeenCalled();
+    expect(lMocks.reinvestToLP).toHaveBeenCalledOnce();
+  });
+
+  it('skips claim when claimable < minDiemWei (dust amount)', async () => {
+    // claimable = 0.001 DIEM, minDiemWei = 0.01 — too small to bother
+    vMocks.getClaimable.mockResolvedValue(parseEther('0.001'));
+    await runTick(DEPS);
+    expect(vMocks.claimDiem).not.toHaveBeenCalled();
+  });
+});
+
+describe('runTick — exits cleanly', () => {
+  it('resolves without throwing on the happy path', async () => {
+    await expect(runTick(DEPS)).resolves.toBeUndefined();
+  });
+
+  it('resolves without throwing when skipping inference', async () => {
+    vMocks.getSvvvBalance.mockResolvedValue(0n);
+    await expect(runTick(DEPS)).resolves.toBeUndefined();
+  });
+});

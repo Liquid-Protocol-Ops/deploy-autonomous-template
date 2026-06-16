@@ -1,0 +1,51 @@
+name: Presale Monitor
+run-name: "presale-monitor: check vault lifecycle"
+
+on:
+  schedule:
+    - cron: '0 * * * *'   # hourly
+  workflow_dispatch:
+    inputs:
+      vault:
+        description: 'Extra vault address to check (optional, in addition to presales.jsonl)'
+        required: false
+        type: string
+
+concurrency:
+  group: presale-monitor
+  cancel-in-progress: false  # never cancel — notifications must fire
+
+permissions:
+  contents: write  # commits + pushes monitor de-dupe state
+
+jobs:
+  monitor:
+    name: Check Presale Vaults
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+
+      - name: Run presale monitor
+        env:
+          RPC_URL:             ${{ secrets.RPC_URL }}
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
+          EXTRA_VAULT:         ${{ inputs.vault }}
+        run: |
+          if [ -n "${EXTRA_VAULT:-}" ]; then
+            node --import tsx scripts/presale-monitor.ts --vault "$EXTRA_VAULT"
+          else
+            node --import tsx scripts/presale-monitor.ts
+          fi
+
+      - name: Commit monitor state
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name  "aeon-bot"
+          git config user.email "aeon@noreply"
+          git add memory/presale-monitor.jsonl memory/presale-monitor-state.json 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "chore: presale-monitor run $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push || true

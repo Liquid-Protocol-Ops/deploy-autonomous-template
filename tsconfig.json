@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022"],
+    "outDir": "./dist",
+    "rootDir": "./",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "sourceMap": true,
+    "isolatedModules": true,
+    "types": ["node"]
+  },
+  "include": ["harness/**/*.ts", "skills/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "dist", "memory/**/*"]
+}

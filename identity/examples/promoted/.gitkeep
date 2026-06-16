@@ -1,0 +1,9 @@
+# promoted/ — auto-promoted positive corpus
+
+This directory is initialized empty and is the **only directory inside `identity/` the agent itself cannot write to**. The platform's lifecycle-engine writes here when a tick output produces a DIEM/hour win above threshold.
+
+Each promoted entry is a single .md file named `YYYY-MM-DD-HHMM-{tick-id}.md` containing the tick output and a `DIEM/hour win:` attribution line. Format follows [[identity/examples/good-outputs#entry-shape]] so the embedding-cosine lint can parse the union of seed + promoted as one corpus.
+
+Why agent-write-disabled: economic ground truth flows in from outside; the agent cannot promote its own outputs because that would let the calibration corpus be gamed by the system being calibrated.
+
+See [[SECTION_5#auto-promote-pipeline]] for the full pipeline.

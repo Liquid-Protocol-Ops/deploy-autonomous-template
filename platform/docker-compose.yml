@@ -1,0 +1,18 @@
+services:
+  fee-router:
+    build:
+      context: ./services/fee-router
+    ports:
+      - "3001:3001"
+    environment:
+      RPC_URL: ${RPC_URL}
+      PORT: "3001"
+      DIEM_ADDRESS: ${DIEM_ADDRESS:-0xF4d97F2da56e8c3098f3a8D538DB630A2606a024}
+      FEE_LOCKER_ADDRESS: ${FEE_LOCKER_ADDRESS:-0xF7d3BE3FC0de76fA5550C29A8F6fa53667B876FF}
+      AGENTS: ${AGENTS:-[]}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

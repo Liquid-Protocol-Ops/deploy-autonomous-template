@@ -1,0 +1,58 @@
+name: Launch Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      agent_name:
+        description: 'Agent name (e.g. "DEGEN ORACLE")'
+        required: true
+      agent_symbol:
+        description: 'Token symbol, 1–6 chars (e.g. "DEGEN"). Defaults to first 6 chars of name.'
+        required: false
+      agent_description:
+        description: 'One-line description of what the agent does'
+        required: false
+      initial_market_cap_usd:
+        description: 'Token launch market cap in USD (default: 20000)'
+        required: false
+        default: '20000'
+      dry_run:
+        description: 'Dry-run only — validate config and log plan without executing'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  launch:
+    name: Provision agent
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: platform/services/cli-launcher/package-lock.json
+
+      - name: Install deps
+        working-directory: platform/services/cli-launcher
+        run: npm ci
+
+      - name: Launch agent
+        working-directory: platform/services/cli-launcher
+        env:
+          AGENT_NAME: ${{ inputs.agent_name }}
+          AGENT_SYMBOL: ${{ inputs.agent_symbol }}
+          AGENT_DESCRIPTION: ${{ inputs.agent_description }}
+          INITIAL_MARKET_CAP_USD: ${{ inputs.initial_market_cap_usd }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          RPC_URL: ${{ secrets.RPC_URL }}
+          # DEPLOYER_PRIVATE_KEY: will be replaced by per-agent
+          # Privy server wallets. Do not add a raw private key here.
+          PRIVY_APP_ID: ${{ secrets.PRIVY_AGENT_APP_ID }}
+          PRIVY_APP_SECRET: ${{ secrets.PRIVY_AGENT_APP_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_GLOBAL }}
+        run: npm run launch

@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 5
+  # Nested platform-service manifests are not covered by the root entry, so
+  # Dependabot was not tracking them for version or security updates.
+  - package-ecosystem: "npm"
+    directory: "/platform/services/fee-router"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 5
+  - package-ecosystem: "npm"
+    directory: "/platform/services/cli-launcher"
+    schedule:
+      interval: "monthly"
+    cooldown:
+      default-days: 5

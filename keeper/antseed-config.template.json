@@ -1,0 +1,42 @@
+{
+  "node": {
+    "port": 6882
+  },
+  "seller": {
+    "reserveFloor": 0,
+    "maxConcurrentBuyers": 10,
+    "providers": {
+      "venice": {
+        "plugin": "openai",
+        "baseUrl": "https://api.venice.ai/api/v1",
+        "defaults": {
+          "inputUsdPerMillion": 0.80,
+          "outputUsdPerMillion": 2.40
+        },
+        "services": {
+          "llama-3.3-70b": {
+            "upstreamModel": "llama-3.3-70b",
+            "categories": ["chat", "coding"],
+            "pricing": { "inputUsdPerMillion": 0.80, "outputUsdPerMillion": 2.40 }
+          },
+          "mistral-nemo": {
+            "upstreamModel": "mistral-nemo",
+            "categories": ["chat"],
+            "pricing": { "inputUsdPerMillion": 0.20, "outputUsdPerMillion": 0.60 }
+          },
+          "deepseek-r1-671b": {
+            "upstreamModel": "deepseek-r1-671b",
+            "categories": ["reasoning"],
+            "pricing": { "inputUsdPerMillion": 2.00, "outputUsdPerMillion": 8.00 }
+          }
+        }
+      }
+    }
+  },
+  "payments": {
+    "crypto": {
+      "chainId": "base-mainnet",
+      "rpcUrl": "__INJECTED_AT_RUNTIME__"
+    }
+  }
+}

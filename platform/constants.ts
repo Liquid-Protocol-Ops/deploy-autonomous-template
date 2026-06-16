@@ -1,0 +1,52 @@
+// On-chain addresses for Base mainnet (chain ID 8453).
+// Keep in sync with liquid-protocol-ops/sdk/src/constants.ts — these are
+// the agent-template's read-only copy so harness modules don't need an SDK dep.
+
+import type { Address } from 'viem';
+
+export const ADDRESSES = {
+  // ── Liquid Protocol ──────────────────────────────────────────────────
+  FEE_LOCKER: '0xF7d3BE3FC0de76fA5550C29A8F6fa53667B876FF' as Address,
+  // DIEM is both the ERC-20 and the sDIEM staking contract — call stake(uint256) directly, no approve needed.
+  // Staking DIEM → sDIEM balance → Venice inference credits ($1/DIEM/day budget).
+  DIEM:        '0xF4d97F2da56e8c3098f3a8D538DB630A2606a024' as Address,
+
+  // ── Base canonical ───────────────────────────────────────────────────
+  // Canonical wrapped-ETH address, same across all OP-stack chains.
+  WETH:        '0x4200000000000000000000000000000000000006' as Address,
+
+  // ── Uniswap v3 (Base mainnet) ─────────────────────────────────────────
+  // Source: https://docs.uniswap.org/contracts/v3/reference/deployments/base-deployments
+  UNISWAP_V3_FACTORY:  '0x33128a8fC17869897dcE68Ed026d694621f6FDfD' as Address,
+  NFPM_V3:             '0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1' as Address,
+  SWAP_ROUTER_V3:      '0x2626664c2603336E57B271c5C0b26F421741e481' as Address,
+  QUOTER_V2:           '0x3d4e44Eb1374240CE5F1B871ab261CD16335B76a' as Address,
+  UNIVERSAL_ROUTER:    '0x6fF5693b99212Da76ad316178A184AB56D299b43' as Address,
+  PERMIT2:             '0x000000000022D473030F116dDEE9F6B43aC78BA3' as Address,
+
+  // ── Venice / VVV ─────────────────────────────────────────────────────
+  // VVV governance token — stake VVV → sVVV → Venice API key gate (one-time per key).
+  // mintDiem(sVVVAmountToLock, minDiemAmountOut) burns sVVV → mints DIEM (selector 0x2006efcb).
+  VVV:         '0xacfE6019Ed1A7Dc6f7B508C02d1b04ec88cC21bf' as Address,
+  // VVV staking contract — approve VVV here, then call stake(agentAddress, amount).
+  // sVVV is NON-TRANSFERABLE; it is a balance tracked inside this contract.
+  // sVVV ≠ sDIEM: sVVV gates the API key; sDIEM (staked DIEM) funds inference credits.
+  VVV_STAKING: '0x321b7ff75154472B18EDb199033fF4D116F340Ff' as Address,
+
+  // ── Liquid Protocol hooks / lockers ──────────────────────────────────
+  HOOK_DYNAMIC_FEE_V2:    '0x80E2F7dC8C2C880BbC4BDF80A5Fb0eB8B1DB68CC' as Address,
+  LP_LOCKER_FEE_CONVERSION: '0x77247fCD1d5e34A3703AcA898A591Dc7422435f3' as Address,
+  MEV_DESCENDING_FEES:    '0x8D6B080e48756A99F3893491D556B5d6907b6910' as Address,
+  LIQUID_FACTORY:         '0x04F1a284168743759BE6554f607a10CEBdB77760' as Address,
+
+  // ── Pools ─────────────────────────────────────────────────────────────
+  // ETH/DIEM Uniswap v3 1% pool on Base — highest APY DIEM pool (655.91% as of 2026-05-14).
+  ETH_DIEM_V3: '0x80d995189ecc593672aD4703b250a5e82672EB1D' as Address,
+} as const;
+
+// Uniswap v3 pool parameters for ETH/DIEM 1% pool.
+// token0 = WETH (0x4200...) < token1 = DIEM (0xF4d9...) by address ordering.
+export const ETH_DIEM_V3 = {
+  FEE:          10_000,  // 1% fee tier
+  TICK_SPACING: 200,     // tick spacing for 1% pools
+} as const;

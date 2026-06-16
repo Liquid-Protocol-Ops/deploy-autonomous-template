@@ -1,0 +1,87 @@
+# deploy-autonomous — aeon skill configuration (template defaults)
+#
+# All skills are disabled by default. When a new agent is deployed from this
+# template, enable the skills appropriate for that agent's mode and identity.
+#
+# Skills run via GitHub Actions (messages.yml dispatches on schedule).
+# Identity reads from identity/SOUL.md and identity/STYLE.md.
+# Memory persists in memory/.
+
+skills:
+  # Run one agent tick — claim fees, LP DIEM, run maintenance inference
+  tick: { enabled: true, schedule: "0 * * * *" }    # hourly; enabled 2026-05-29 after MVP smoke verified
+
+  # Proactive health check: skill failures, LP state, memory flags
+  heartbeat: { enabled: false, schedule: "0 8,14,20 * * *" }
+
+  # Monitor LP position and FeeLocker balance
+  lp-monitor: { enabled: false, schedule: "0 12 * * *" }
+
+  # On-chain monitoring of agent wallet and FeeLocker
+  on-chain-monitor: { enabled: false, schedule: "0 6 * * *", model: "claude-sonnet-4-6" }
+
+  # Launch a VVV-denominated token from memory/launch-queue.jsonl
+  launch-vvv-token: { enabled: false, schedule: "0 10 * * *", model: "claude-sonnet-4-6" }
+
+  # Stake accumulated VVV fees on Venice staking contract for sVVV (inference gate)
+  stake-vvv: { enabled: false, schedule: "0 9 * * 1", model: "claude-sonnet-4-6" }
+
+  # Bootstrap Venice compute via two-tranche presale (VVV irrevocable + DIEM time-lock)
+  compute-presale: { enabled: false, schedule: "0 11 * * *", model: "claude-sonnet-4-6" }
+
+  # Time-weighted DIEM presale (30/60/90d lock tiers, 1×/2×/3× multipliers)
+  stakesale: { enabled: false, schedule: "0 11 * * *", model: "claude-sonnet-4-6" }
+
+  # Token price/volume tracking (enable in build mode)
+  token-report: { enabled: false, schedule: "30 12 * * *", model: "claude-sonnet-4-6" }
+
+  # Claim DIEM from FeeLocker, run accumulate-vs-build analysis, route earnings
+  claim-diem: { enabled: false, schedule: "0 */12 * * *", model: "claude-sonnet-4-6" }
+
+  # Auto-stake: claim FeeLocker DIEM + withdraw LP liquidity to restore sDIEM credits.
+  # Runs before inference is needed — no Venice credit required to execute.
+  # Checks stakedInfos on-chain; only acts if sDIEM < stake_min_diem.
+  # Requires: PRIVY_APP_ID/SECRET/WALLET_ID (or AGENT_PRIVATE_KEY), RPC_URL, LP_TOKEN_ID.
+  stake-diem: { enabled: false, schedule: "0 */6 * * *", model: "claude-sonnet-4-6" }
+  # Config for stake-diem skill:
+  stake_min_diem: 5        # stake if sDIEM balance falls below this many DIEM
+  stake_target_diem: 20    # top up to this many DIEM when staking
+
+  # Track LP earnings per position per day — writes to memory/earnings.jsonl
+  track-earnings: { enabled: false, schedule: "55 23 * * *", model: "claude-sonnet-4-6" }
+
+  # Weekly profitability measurement — execute the agent's Dune query, parse
+  # realized fee income into memory/profitability-signal.jsonl, recommend a
+  # strategy move. The measurement half of the profitability loop (feeds
+  # goal-review). Enable once the agent has LP positions worth measuring; needs
+  # DUNE_API_KEY + DUNE_PROFITABILITY_QUERY_ID secrets (safe no-op without them).
+  profitability-signal: { enabled: false, schedule: "0 7 * * 0", model: "claude-sonnet-4-6" }
+
+  # Weekly goal audit — milestone ETAs, self-funding ratio (sDIEM $/day vs 7d avg
+  # inference cost), mode consistency; reports deltas + one recommendation to the
+  # creator. The follow-up loop for memory/goals.json. (Runs after
+  # profitability-signal so it reads the fresh signal.)
+  goal-review: { enabled: false, schedule: "0 8 * * 1", model: "claude-sonnet-4-6" }
+
+  # Presale lifecycle monitor: window closing/closed, lock expiry approaching/expired → Telegram
+  presale-monitor: { enabled: false, schedule: "0 * * * *" }  # hourly; enable when vaults are live
+
+# Default model for skills without a per-skill override
+model: claude-sonnet-4-6
+
+gateway:
+  provider: venice
+  # Fallback when the primary provider key is absent.
+  # "direct" routes through CLAUDE_CODE_OAUTH_TOKEN (the owner's Claude Code plan
+  # key, set as a repo secret).
+  provider_fallback: direct
+
+reactive: {}
+chains: {}
+
+channels:
+  jsonrender:
+    enabled: false
+
+telegram:
+  enabled: false
