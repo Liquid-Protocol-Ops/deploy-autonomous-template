@@ -1,12 +1,12 @@
 {
   "tick": {
     "last_dispatch": "2026-06-17T00:01:02Z",
-    "last_status": "dispatched",
-    "last_failed": "2026-06-16T23:24:59Z",
-    "total_runs": 8,
+    "last_status": "failed",
+    "last_failed": "2026-06-17T00:01:28Z",
+    "total_runs": 9,
     "total_successes": 0,
-    "total_failures": 8,
-    "consecutive_failures": 8,
+    "total_failures": 9,
+    "consecutive_failures": 9,
     "success_rate": 0
   }
 }
