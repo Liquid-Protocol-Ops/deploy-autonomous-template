@@ -90,7 +90,17 @@ jobs:
 
       - name: Check if there's work
         id: work
+        env:
+          AGENT_WALLET: ${{ secrets.AGENT_WALLET }}
         run: |
+          # Skip on an unconfigured repo (the template, a "use this template" copy, or a
+          # fresh fork before its secrets land): no AGENT_WALLET = no agent to run, so
+          # no-op (empty mode → all downstream steps skip) instead of failing the run.
+          if [ -z "$AGENT_WALLET" ]; then
+            echo "::notice::AGENT_WALLET not set — unconfigured repo, skipping run."
+            echo "Nothing to do"
+            exit 0
+          fi
           if [ -n "${{ steps.skill.outputs.name }}" ]; then
             echo "mode=skill" >> "$GITHUB_OUTPUT"
             echo "label=${{ steps.skill.outputs.name }}" >> "$GITHUB_OUTPUT"
