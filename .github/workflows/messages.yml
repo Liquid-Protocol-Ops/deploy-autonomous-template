@@ -52,7 +52,15 @@ jobs:
       - name: Determine and dispatch scheduled skills
         env:
           GH_TOKEN: ${{ secrets.GH_GLOBAL || secrets.GITHUB_TOKEN }}
+          AGENT_WALLET: ${{ secrets.AGENT_WALLET }}
         run: |
+          # Unconfigured repo (the template, a "use this template" copy, or a fresh fork
+          # before its secrets land): no AGENT_WALLET = no agent to run, so skip the whole
+          # tick — don't dispatch skills that would only fail without a wallet + inference.
+          if [ -z "$AGENT_WALLET" ]; then
+            echo "::notice::AGENT_WALLET not set — unconfigured repo, skipping tick."
+            exit 0
+          fi
           MINUTE=$(date -u +%-M)
           HOUR=$(date -u +%-H)
           DOM=$(date -u +%-d)
