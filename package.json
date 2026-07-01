@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "grammy": "^1.43.0",
-    "viem": "^2.51.3"
+    "viem": "^2.53.1"
   },
   "overrides": {
     "ws": ">=8.20.1"
